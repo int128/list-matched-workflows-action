@@ -1,10 +1,14 @@
-name: typescript-action
-description: Template of TypeScript Action
+name: list-matched-workflows-action
+description: List matched workflows against the changed files of the pull request.
 
 inputs:
-  name:
-    description: example input
+  workflows:
+    description: Glob pattern to match workflow files
     required: true
+  token:
+    description: GitHub token
+    required: true
+    default: ${{ github.token }}
 
 runs:
   using: 'node20'

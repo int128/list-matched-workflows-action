@@ -32,10 +32,11 @@ jobs:
       - run: pnpm test
       - run: pnpm build
 
-      - name: e2e-test
+      - name: Run int128/list-matched-workflows-action
         uses: ./
         with:
-          name: foo
+          workflows: |
+            .github/workflows/*.yaml
 
   generate:
     runs-on: ubuntu-latest
