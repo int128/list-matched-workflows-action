@@ -10,6 +10,10 @@ inputs:
     required: true
     default: ${{ github.token }}
 
+outputs:
+  matched-workflows-json:
+    description: JSON string of matched workflows
+
 runs:
   using: 'node20'
   main: 'dist/index.js'

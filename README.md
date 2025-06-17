@@ -19,12 +19,13 @@ jobs:
 
 ### Inputs
 
-| Name        | Default    | Description                             |
-| ----------- | ---------- | --------------------------------------- |
-| `workflows` | (required) | A glob pattern to match workflow files. |
+| Name        | Default        | Description                             |
+| ----------- | -------------- | --------------------------------------- |
+| `workflows` | (required)     | A glob pattern to match workflow files. |
+| `token`     | `github.token` | GitHub token.                           |
 
 ### Outputs
 
-| Name      | Description    |
-| --------- | -------------- |
-| `example` | example output |
+| Name                     | Description                      |
+| ------------------------ | -------------------------------- |
+| `matched-workflows-json` | JSON string of matched workflows |

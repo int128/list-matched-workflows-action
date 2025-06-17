@@ -2,6 +2,7 @@ import assert from 'assert'
 import * as core from '@actions/core'
 import * as fs from 'fs/promises'
 import * as glob from '@actions/glob'
+import * as path from 'path'
 import * as yaml from 'js-yaml'
 import { Octokit } from '@octokit/action'
 import { Context } from './github.js'
@@ -35,11 +36,14 @@ export const run = async (inputs: Inputs, octokit: Octokit, context: Context): P
   const workflowGlob = await glob.create(inputs.workflows)
   const workflowFilenames = await workflowGlob.glob()
   core.startGroup(`Parsing ${workflowFilenames.length} workflows`)
-  for (const filename of workflowFilenames) {
-    core.info(`Parsing ${filename}`)
-    const workflow: unknown = yaml.load(await fs.readFile(filename, 'utf8'))
+  for (const workflowFilename of workflowFilenames) {
+    core.info(`Parsing ${workflowFilename}`)
+    const workflow: unknown = yaml.load(await fs.readFile(workflowFilename, 'utf8'))
     assertIsWorkflow(workflow)
-    workflowFiles.push({ filename, workflow })
+    workflowFiles.push({
+      filename: path.basename(workflowFilename),
+      workflow,
+    })
   }
   core.endGroup()
 
