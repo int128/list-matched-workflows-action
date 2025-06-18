@@ -82,5 +82,8 @@ export const run = async (inputs: Inputs, octokit: Octokit, context: Context): P
   core.endGroup()
 
   core.info(`Matched ${matchedWorkflows.length} workflows`)
+  for (const workflowFile of matchedWorkflows) {
+    core.info(`- ${workflowFile.filename}`)
+  }
   return { matchedWorkflows }
 }
