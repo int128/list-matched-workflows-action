@@ -47,9 +47,9 @@ export const createGlobMatcher = (patterns: string[]) => {
     let matched = false
     for (const pattern of patterns) {
       if (pattern.startsWith('!')) {
-        matched = matched && minimatch(target, pattern)
+        matched = matched && minimatch(target, pattern, { dot: true })
       } else {
-        matched = matched || minimatch(target, pattern)
+        matched = matched || minimatch(target, pattern, { dot: true })
       }
     }
     return matched
