@@ -1,4 +1,4 @@
-import assert from 'assert'
+import assert from 'node:assert'
 import { minimatch } from 'minimatch'
 
 export const matchPullRequestType = (workflow: Workflow, type: string) => {
