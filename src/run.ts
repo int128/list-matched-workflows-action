@@ -1,17 +1,17 @@
-import assert from 'assert'
+import assert from 'node:assert'
+import * as fs from 'node:fs/promises'
+import * as path from 'node:path'
 import * as core from '@actions/core'
-import * as fs from 'fs/promises'
 import * as glob from '@actions/glob'
-import * as path from 'path'
+import type { Octokit } from '@octokit/action'
 import * as yaml from 'js-yaml'
-import { Octokit } from '@octokit/action'
-import { Context } from './github.js'
+import type { Context } from './github.js'
 import {
   assertIsWorkflow,
   matchPullRequestBranch,
   matchPullRequestPaths,
   matchPullRequestType,
-  Workflow,
+  type Workflow,
 } from './workflow.js'
 
 type Inputs = {
