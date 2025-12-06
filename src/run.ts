@@ -7,10 +7,10 @@ import type { Octokit } from '@octokit/action'
 import * as yaml from 'js-yaml'
 import type { Context } from './github.js'
 import {
-  assertIsWorkflow,
   matchPullRequestBranch,
   matchPullRequestPaths,
   matchPullRequestType,
+  parseWorkflow,
   type Workflow,
 } from './workflow.js'
 
@@ -38,8 +38,8 @@ export const run = async (inputs: Inputs, octokit: Octokit, context: Context): P
   core.startGroup(`Parsing ${workflowFilenames.length} workflows`)
   for (const workflowFilename of workflowFilenames) {
     core.info(`Parsing ${workflowFilename}`)
-    const workflow: unknown = yaml.load(await fs.readFile(workflowFilename, 'utf8'))
-    assertIsWorkflow(workflow)
+    const workflowYaml = yaml.load(await fs.readFile(workflowFilename, 'utf8'))
+    const workflow = parseWorkflow(workflowYaml)
     workflowFiles.push({
       filename: path.basename(workflowFilename),
       workflow,
