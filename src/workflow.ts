@@ -1,5 +1,5 @@
-import assert from 'node:assert'
 import { minimatch } from 'minimatch'
+import * as z from 'zod'
 
 export const matchPullRequestType = (workflow: Workflow, type: string) => {
   if (!workflow.on.pull_request) {
@@ -56,87 +56,23 @@ export const createGlobMatcher = (patterns: string[]) => {
   }
 }
 
-export type Workflow = {
-  on: {
+const Workflow = z.object({
+  on: z.object({
     // https://docs.github.com/en/actions/writing-workflows/workflow-syntax-for-github-actions#onpull_requestpull_request_targetbranchesbranches-ignore
     // cannot use both the branches and branches-ignore filters
     // cannot use both the paths and paths-ignore filters
-    pull_request?: {
-      types?: string[]
-      branches?: string[]
-      'branches-ignore'?: string[]
-      paths?: string[]
-      'paths-ignore'?: string[]
-    }
-  }
-}
+    pull_request: z
+      .object({
+        types: z.array(z.string()).optional(),
+        branches: z.array(z.string()).optional(),
+        'branches-ignore': z.array(z.string()).optional(),
+        paths: z.array(z.string()).optional(),
+        'paths-ignore': z.array(z.string()).optional(),
+      })
+      .optional(),
+  }),
+})
 
-export function assertIsWorkflow(x: unknown): asserts x is Workflow {
-  assert(typeof x === 'object', `Workflow must be an object but got ${typeof x}`)
-  assert(x !== null, 'Workflow must not be null')
+export type Workflow = z.infer<typeof Workflow>
 
-  assert('on' in x, 'Workflow must have an "on" property')
-  assert(typeof x.on === 'object', `Workflow "on" property must be an object but got ${typeof x.on}`)
-  assert(x.on !== null, 'Workflow "on" property must not be null')
-
-  if ('pull_request' in x.on) {
-    assert(
-      typeof x.on.pull_request === 'object',
-      `Workflow "on.pull_request" property must be an object but got ${typeof x.on.pull_request}`,
-    )
-    assert(x.on.pull_request !== null, 'Workflow "on.pull_request" property must not be null')
-
-    if ('types' in x.on.pull_request) {
-      assert(
-        Array.isArray(x.on.pull_request.types),
-        `Workflow "on.pull_request.types" must be an array but got ${typeof x.on.pull_request.types}`,
-      )
-      assert(
-        x.on.pull_request.types.every((type) => typeof type === 'string'),
-        `Workflow "on.pull_request.types" must be an array of strings but got ${JSON.stringify(x.on.pull_request.types)}`,
-      )
-    }
-
-    if ('branches' in x.on.pull_request) {
-      assert(
-        Array.isArray(x.on.pull_request.branches),
-        `Workflow "on.pull_request.branches" must be an array but got ${typeof x.on.pull_request.branches}`,
-      )
-      assert(
-        x.on.pull_request.branches.every((branch) => typeof branch === 'string'),
-        `Workflow "on.pull_request.branches" must be an array of strings but got ${JSON.stringify(x.on.pull_request.branches)}`,
-      )
-    }
-    if ('branches-ignore' in x.on.pull_request) {
-      assert(
-        Array.isArray(x.on.pull_request['branches-ignore']),
-        `Workflow "on.pull_request.branches-ignore" must be an array but got ${typeof x.on.pull_request['branches-ignore']}`,
-      )
-      assert(
-        x.on.pull_request['branches-ignore'].every((branch) => typeof branch === 'string'),
-        `Workflow "on.pull_request.branches-ignore" must be an array of strings but got ${JSON.stringify(x.on.pull_request['branches-ignore'])}`,
-      )
-    }
-
-    if ('paths' in x.on.pull_request) {
-      assert(
-        Array.isArray(x.on.pull_request.paths),
-        `Workflow "on.pull_request.paths" must be an array but got ${typeof x.on.pull_request.paths}`,
-      )
-      assert(
-        x.on.pull_request.paths.every((path) => typeof path === 'string'),
-        `Workflow "on.pull_request.paths" must be an array of strings but got ${JSON.stringify(x.on.pull_request.paths)}`,
-      )
-    }
-    if ('paths-ignore' in x.on.pull_request) {
-      assert(
-        Array.isArray(x.on.pull_request['paths-ignore']),
-        `Workflow "on.pull_request.paths-ignore" must be an array but got ${typeof x.on.pull_request['paths-ignore']}`,
-      )
-      assert(
-        x.on.pull_request['paths-ignore'].every((path) => typeof path === 'string'),
-        `Workflow "on.pull_request.paths-ignore" must be an array of strings but got ${JSON.stringify(x.on.pull_request['paths-ignore'])}`,
-      )
-    }
-  }
-}
+export const parseWorkflow = (x: unknown): Workflow => Workflow.parse(x)
