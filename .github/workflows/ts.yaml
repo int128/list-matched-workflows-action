@@ -7,7 +7,7 @@ on:
       - tests/**
       - '*.json'
       - '*.yaml'
-      - .github/workflows/ts.yaml
+      - .github/workflows/*
   push:
     branches:
       - main
@@ -16,7 +16,7 @@ on:
       - tests/**
       - '*.json'
       - '*.yaml'
-      - .github/workflows/ts.yaml
+      - .github/workflows/*
 
 jobs:
   test:
