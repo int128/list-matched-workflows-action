@@ -48,7 +48,7 @@ on:
   pull_request:
 `),
     )
-    expect(workflow).toEqual({ on: { pull_request: {} } })
+    expect(workflow).toEqual({ on: { pull_request: null } })
   })
 
   it('parses a workflow with minimal pull_request', () => {
