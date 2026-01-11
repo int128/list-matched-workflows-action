@@ -1,5 +1,6 @@
+import * as yaml from 'js-yaml'
 import { describe, expect, it } from 'vitest'
-import { createGlobMatcher } from '../src/workflow.js'
+import { createGlobMatcher, parseWorkflow } from '../src/workflow.js'
 
 describe('createGlobMatcher', () => {
   it('matches anything when no pattern is given', () => {
@@ -26,5 +27,72 @@ describe('createGlobMatcher', () => {
     expect(matcher('foo.github.baz')).toBe(true)
     expect(matcher('example.bar')).toBe(true)
     expect(matcher('example.baz')).toBe(true)
+  })
+})
+
+describe('parseWorkflow', () => {
+  it('parses a workflow without pull_request', () => {
+    const workflow = parseWorkflow(
+      yaml.load(`
+on:
+  push:
+`),
+    )
+    expect(workflow).toEqual({ on: {} })
+  })
+
+  it('parses a workflow with empty pull_request', () => {
+    const workflow = parseWorkflow(
+      yaml.load(`
+on:
+  pull_request:
+`),
+    )
+    expect(workflow).toEqual({ on: { pull_request: null } })
+  })
+
+  it('parses a workflow with minimal pull_request', () => {
+    const workflow = parseWorkflow(
+      yaml.load(`
+on:
+  pull_request:
+    branches:
+      - main
+`),
+    )
+    expect(workflow).toEqual({
+      on: {
+        pull_request: {
+          branches: ['main'],
+        },
+      },
+    })
+  })
+
+  it('parses a workflow with full pull_request', () => {
+    const workflow = parseWorkflow(
+      yaml.load(`
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+    branches:
+      - main
+      - "!release/*"
+    paths:
+      - src/**
+      - "!docs/**"
+`),
+    )
+    expect(workflow).toEqual({
+      on: {
+        pull_request: {
+          types: ['opened', 'synchronize'],
+          branches: ['main', '!release/*'],
+          paths: ['src/**', '!docs/**'],
+        },
+      },
+    })
   })
 })
