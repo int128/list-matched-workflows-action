@@ -69,6 +69,7 @@ const Workflow = z.object({
         paths: z.array(z.string()).optional(),
         'paths-ignore': z.array(z.string()).optional(),
       })
+      .nullable()
       .optional(),
   }),
 })
