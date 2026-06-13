@@ -23,6 +23,9 @@ importers:
       js-yaml:
         specifier: 4.1.1
         version: 4.1.1
+      minimatch:
+        specifier: 10.2.5
+        version: 10.2.5
       zod:
         specifier: 4.4.3
         version: 4.4.3
