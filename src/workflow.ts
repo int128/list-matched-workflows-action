@@ -1,4 +1,4 @@
-import { minimatch } from 'minimatch'
+import { matchesGlob } from 'node:path'
 import * as z from 'zod'
 
 export const matchPullRequestType = (workflow: Workflow, type: string) => {
@@ -47,9 +47,9 @@ export const createGlobMatcher = (patterns: string[]) => {
     let matched = false
     for (const pattern of patterns) {
       if (pattern.startsWith('!')) {
-        matched = matched && minimatch(target, pattern, { dot: true })
+        matched = matched && !matchesGlob(target, pattern.slice(1))
       } else {
-        matched = matched || minimatch(target, pattern, { dot: true })
+        matched = matched || matchesGlob(target, pattern)
       }
     }
     return matched
