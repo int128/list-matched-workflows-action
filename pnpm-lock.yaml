@@ -21,8 +21,8 @@ importers:
         specifier: 8.1.1
         version: 8.1.1(@octokit/core@7.0.6)
       js-yaml:
-        specifier: 5.2.2
-        version: 5.2.2
+        specifier: 5.2.3
+        version: 5.2.3
       minimatch:
         specifier: 10.2.6
         version: 10.2.6
@@ -198,10 +198,6 @@ packages:
     engines: {node: '>= 20'}
     peerDependencies:
       '@octokit/core': '>=7'
-
-  '@octokit/request-error@7.1.0':
-    resolution: {integrity: sha512-KMQIfq5sOPpkQYajXHwnhjCC0slzCNScLHs9JafXc4RAJI+9f+jNDlBNaIMTvazOPLgb4BnlhGJOTbnN0wIjPw==}
-    engines: {node: '>= 20'}
 
   '@octokit/request-error@7.1.1':
     resolution: {integrity: sha512-+eaY7G2VVpSf2pc5Gn1+mph837V/d/TYTJAgWL9Tb0ogGYcpN3IlAVFgjL+Vv93F/sevrxkvsYCedtpLdcFLzA==}
@@ -437,8 +433,8 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
-  js-yaml@5.2.2:
-    resolution: {integrity: sha512-dayzUzKkJ1MkuUtZglSebU43utNXH0OWQByK9rKOOuYIO8M5TV1y+n8ALMdG0rdzBnfNkOmZEqrURepb0ejqBw==}
+  js-yaml@5.2.3:
+    resolution: {integrity: sha512-n+mUVyUX5bVv7G/G2zyIHOhdxfuU1dY2NOFzTQUWiMUbFss8b57NFlgCCaggU78wSw5KVS9cllzeLyzyR+n5nw==}
     hasBin: true
 
   json-with-bigint@3.5.10:
@@ -808,7 +804,7 @@ snapshots:
       '@octokit/auth-token': 6.0.0
       '@octokit/graphql': 9.0.3
       '@octokit/request': 10.0.11
-      '@octokit/request-error': 7.1.0
+      '@octokit/request-error': 7.1.1
       '@octokit/types': 16.0.0
       before-after-hook: 4.0.0
       universal-user-agent: 7.0.3
@@ -845,10 +841,6 @@ snapshots:
       '@octokit/types': 17.0.0
       bottleneck: 2.19.5
 
-  '@octokit/request-error@7.1.0':
-    dependencies:
-      '@octokit/types': 16.0.0
-
   '@octokit/request-error@7.1.1':
     dependencies:
       '@octokit/types': 17.0.0
@@ -856,7 +848,7 @@ snapshots:
   '@octokit/request@10.0.11':
     dependencies:
       '@octokit/endpoint': 11.0.3
-      '@octokit/request-error': 7.1.0
+      '@octokit/request-error': 7.1.1
       '@octokit/types': 16.0.0
       content-type: 2.0.0
       json-with-bigint: 3.5.10
@@ -1029,7 +1021,7 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
-  js-yaml@5.2.2:
+  js-yaml@5.2.3:
     dependencies:
       argparse: 2.0.1
 
