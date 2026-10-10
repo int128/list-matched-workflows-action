@@ -1,3 +1,4 @@
+import * as fs from 'node:fs/promises'
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
 import { type Context, getToken } from './github.js'
@@ -22,8 +23,9 @@ export const compareMergeCommit = async (context: Context): Promise<string[]> =>
       },
     },
   )
-  const gitDiff = await exec.getExecOutput('git', [
+  await exec.exec('git', [
     'diff',
+    `--output=${context.runnerTemp}/diff`,
     '--name-only',
     // The merge commit has two parents.
     // The first parent is the base branch to be merged into.
@@ -31,7 +33,8 @@ export const compareMergeCommit = async (context: Context): Promise<string[]> =>
     `${context.sha}^1`,
     context.sha,
   ])
-  return gitDiff.stdout.split('\n').filter((f) => f)
+  const diff = await fs.readFile(`${context.runnerTemp}/diff`, 'utf-8')
+  return diff.split('\n').filter((line) => line)
 }
 
 const gitTokenConfigFlags = (context: Context) => {

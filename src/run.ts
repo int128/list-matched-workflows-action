@@ -49,11 +49,7 @@ export const run = async (inputs: Inputs, context: Context): Promise<Outputs> =>
 
   core.info(`Fetching the changed files of the current pull request`)
   const changedFiles = await git.compareMergeCommit(context)
-  core.startGroup(`Found ${changedFiles.length} changed files`)
-  for (const file of changedFiles) {
-    core.info(file)
-  }
-  core.endGroup()
+  core.info(`Found ${changedFiles.length} changed files`)
 
   core.startGroup(`Filtering ${workflowFiles.length} workflows based on the event`)
   const matchedWorkflows = []
