@@ -3,8 +3,8 @@ import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as core from '@actions/core'
 import * as glob from '@actions/glob'
-import type { Octokit } from '@octokit/action'
 import * as yaml from 'js-yaml'
+import * as git from './git.js'
 import type { Context } from './github.js'
 import {
   matchPullRequestBranch,
@@ -27,7 +27,7 @@ type WorkflowFile = {
   workflow: Workflow
 }
 
-export const run = async (inputs: Inputs, octokit: Octokit, context: Context): Promise<Outputs> => {
+export const run = async (inputs: Inputs, context: Context): Promise<Outputs> => {
   assert('pull_request' in context.payload, 'This action must be run on a pull_request event')
   core.info(`pull_request.type: ${context.payload.action}`)
   core.info(`pull_request.branch: ${context.payload.pull_request.base.ref}`)
@@ -47,14 +47,8 @@ export const run = async (inputs: Inputs, octokit: Octokit, context: Context): P
   }
   core.endGroup()
 
-  core.info(`Fetching the list of changed files in ${context.payload.pull_request.html_url}`)
-  const listFiles = await octokit.paginate(octokit.rest.pulls.listFiles, {
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    pull_number: context.payload.pull_request.number,
-    per_page: 100,
-  })
-  const changedFiles = listFiles.map((file) => file.filename)
+  core.info(`Fetching the changed files of the current pull request`)
+  const changedFiles = await git.compareMergeCommit(context)
   core.startGroup(`Found ${changedFiles.length} changed files`)
   for (const file of changedFiles) {
     core.info(file)
