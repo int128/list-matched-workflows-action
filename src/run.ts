@@ -5,7 +5,7 @@ import * as glob from '@actions/glob'
 import * as yaml from 'js-yaml'
 import * as git from './git.js'
 import type { Context } from './github.js'
-import * as workflow from './workflow.js'
+import { matchPullRequest, matchPush, parseWorkflow, type Workflow } from './workflow.js'
 
 type Inputs = {
   workflows: string
@@ -17,11 +17,11 @@ type Outputs = {
 
 type WorkflowFile = {
   filename: string
-  workflow: workflow.Workflow
+  workflow: Workflow
 }
 
 export const run = async (inputs: Inputs, context: Context): Promise<Outputs> => {
-  core.startGroup('Parsing workflows')
+  core.startGroup('Parsing GitHub Actions workflows')
   const workflowFiles = await Array.fromAsync(parseWorkflows(inputs.workflows))
   core.endGroup()
   const matchedWorkflows = await matchWorkflows(workflowFiles, context)
@@ -40,15 +40,15 @@ const matchWorkflows = async (workflowFiles: WorkflowFile[], context: Context) =
     const changedFiles = await git.compareMergeCommit(context)
     core.endGroup()
     core.info(`Found ${changedFiles.length} changed files`)
-    return workflowFiles.filter((f) => workflow.matchPullRequest(f.workflow, payload, changedFiles))
+    return workflowFiles.filter((f) => matchPullRequest(f.workflow, payload, changedFiles))
   }
 
   if ('before' in payload && 'after' in payload && 'ref' in payload) {
     core.startGroup(`Comparing the before and after commits of the push event`)
-    const changedFiles = await git.compareTwoCommits(context, payload)
+    const changedFiles = await git.comparePushedCommits(context, payload)
     core.endGroup()
     core.info(`Found ${changedFiles.length} changed files`)
-    return workflowFiles.filter((f) => workflow.matchPush(f.workflow, payload, changedFiles))
+    return workflowFiles.filter((f) => matchPush(f.workflow, payload, changedFiles))
   }
 
   throw new Error(`This action must be run on pull_request or push event`)
@@ -61,7 +61,7 @@ const parseWorkflows = async function* (pattern: string) {
     const workflowYaml = yaml.load(await fs.readFile(workflowFilename, 'utf8'))
     yield {
       filename: path.basename(workflowFilename),
-      workflow: workflow.parseWorkflow(workflowYaml),
+      workflow: parseWorkflow(workflowYaml),
     }
   }
 }
