@@ -21,7 +21,9 @@ type WorkflowFile = {
 }
 
 export const run = async (inputs: Inputs, context: Context): Promise<Outputs> => {
-  const workflowFiles = await parseWorkflowFiles(inputs.workflows)
+  core.startGroup('Parsing workflows')
+  const workflowFiles = await Array.fromAsync(parseWorkflows(inputs.workflows))
+  core.endGroup()
   const matchedWorkflows = await matchWorkflows(workflowFiles, context)
   core.info(`Matched ${matchedWorkflows.length} workflows`)
   for (const workflowFile of matchedWorkflows) {
@@ -52,17 +54,14 @@ const matchWorkflows = async (workflowFiles: WorkflowFile[], context: Context) =
   throw new Error(`This action must be run on pull_request or push event`)
 }
 
-const parseWorkflowFiles = async (pattern: string) => {
-  const workflowFiles: WorkflowFile[] = []
-  const workflowGlob = await glob.create(pattern)
-  for await (const workflowFilename of workflowGlob.globGenerator()) {
+const parseWorkflows = async function* (pattern: string) {
+  const patternGlob = await glob.create(pattern)
+  for await (const workflowFilename of patternGlob.globGenerator()) {
     core.info(`Parsing ${workflowFilename}`)
     const workflowYaml = yaml.load(await fs.readFile(workflowFilename, 'utf8'))
-    workflowFiles.push({
+    yield {
       filename: path.basename(workflowFilename),
       workflow: workflow.parseWorkflow(workflowYaml),
-    })
+    }
   }
-  core.info(`Found ${workflowFiles.length} workflows`)
-  return workflowFiles
 }

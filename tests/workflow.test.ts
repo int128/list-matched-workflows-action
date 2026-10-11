@@ -46,7 +46,7 @@ describe('parseWorkflow', () => {
     const workflow = parseWorkflow(
       yaml.load(`
 on:
-  push:
+  workflow_call:
 `),
     )
     expect(workflow).toEqual({ on: {} })
