@@ -1,6 +1,6 @@
 import { minimatch } from 'minimatch'
 import * as z from 'zod'
-import { PullRequestPayload, PushPayload } from './github.js'
+import type { PullRequestPayload, PushPayload } from './github.js'
 
 export const matchPullRequest = (workflow: Workflow, payload: PullRequestPayload, changedFiles: string[]) =>
   matchPullRequestType(workflow, payload.action) &&
