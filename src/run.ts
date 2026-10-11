@@ -28,30 +28,25 @@ type WorkflowFile = {
 }
 
 export const run = async (inputs: Inputs, context: Context): Promise<Outputs> => {
-  assert('pull_request' in context.payload, 'This action must be run on a pull_request event')
+  const workflowFiles = await parseWorkflowFiles(inputs.workflows)
+  core.startGroup(`Filtering ${workflowFiles.length} workflows based on the event`)
+
+  if ('pull_request' in context.payload) {
+    const matchedWorkflows = await matchPullRequest(workflowFiles, context)
+    return { matchedWorkflows }
+  }
+  throw new Error(`This action must be run on pull_request event`)
+}
+
+const matchPullRequest = async (workflowFiles: WorkflowFile[], context: Context) => {
+  assert('pull_request' in context.payload)
   core.info(`pull_request.type: ${context.payload.action}`)
   core.info(`pull_request.branch: ${context.payload.pull_request.base.ref}`)
-
-  const workflowFiles: WorkflowFile[] = []
-  const workflowGlob = await glob.create(inputs.workflows)
-  const workflowFilenames = await workflowGlob.glob()
-  core.startGroup(`Parsing ${workflowFilenames.length} workflows`)
-  for (const workflowFilename of workflowFilenames) {
-    core.info(`Parsing ${workflowFilename}`)
-    const workflowYaml = yaml.load(await fs.readFile(workflowFilename, 'utf8'))
-    const workflow = parseWorkflow(workflowYaml)
-    workflowFiles.push({
-      filename: path.basename(workflowFilename),
-      workflow,
-    })
-  }
-  core.endGroup()
 
   core.info(`Fetching the changed files of the current pull request`)
   const changedFiles = await git.compareMergeCommit(context)
   core.info(`Found ${changedFiles.length} changed files`)
 
-  core.startGroup(`Filtering ${workflowFiles.length} workflows based on the event`)
   const matchedWorkflows = []
   for (const workflowFile of workflowFiles) {
     if (!matchPullRequestType(workflowFile.workflow, context.payload.action)) {
@@ -75,5 +70,21 @@ export const run = async (inputs: Inputs, context: Context): Promise<Outputs> =>
   for (const workflowFile of matchedWorkflows) {
     core.info(`- ${workflowFile.filename}`)
   }
-  return { matchedWorkflows }
+  return matchedWorkflows
+}
+
+const parseWorkflowFiles = async (pattern: string) => {
+  const workflowFiles: WorkflowFile[] = []
+  const workflowGlob = await glob.create(pattern)
+  for await (const workflowFilename of workflowGlob.globGenerator()) {
+    core.info(`Parsing ${workflowFilename}`)
+    const workflowYaml = yaml.load(await fs.readFile(workflowFilename, 'utf8'))
+    const workflow = parseWorkflow(workflowYaml)
+    workflowFiles.push({
+      filename: path.basename(workflowFilename),
+      workflow,
+    })
+  }
+  core.endGroup()
+  return workflowFiles
 }
