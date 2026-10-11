@@ -10,6 +10,8 @@ import {
   matchPullRequestBranch,
   matchPullRequestPaths,
   matchPullRequestType,
+  matchPushPaths,
+  matchPushRef,
   parseWorkflow,
   type Workflow,
 } from './workflow.js'
@@ -35,7 +37,11 @@ export const run = async (inputs: Inputs, context: Context): Promise<Outputs> =>
     const matchedWorkflows = await matchPullRequest(workflowFiles, context)
     return { matchedWorkflows }
   }
-  throw new Error(`This action must be run on pull_request event`)
+  if ('before' in context.payload && 'after' in context.payload) {
+    const matchedWorkflows = await matchPush(workflowFiles, context)
+    return { matchedWorkflows }
+  }
+  throw new Error(`This action must be run on pull_request or push event`)
 }
 
 const matchPullRequest = async (workflowFiles: WorkflowFile[], context: Context) => {
@@ -43,7 +49,7 @@ const matchPullRequest = async (workflowFiles: WorkflowFile[], context: Context)
   core.info(`pull_request.type: ${context.payload.action}`)
   core.info(`pull_request.branch: ${context.payload.pull_request.base.ref}`)
 
-  core.info(`Fetching the changed files of the current pull request`)
+  core.startGroup(`Comparing the base branch and merge commit of the pull request`)
   const changedFiles = await git.compareMergeCommit(context)
   core.info(`Found ${changedFiles.length} changed files`)
 
@@ -58,6 +64,35 @@ const matchPullRequest = async (workflowFiles: WorkflowFile[], context: Context)
       continue
     }
     if (!matchPullRequestPaths(workflowFile.workflow, changedFiles)) {
+      core.info(`${workflowFile.filename}: changed files did not match`)
+      continue
+    }
+    core.info(`${workflowFile.filename}: matched`)
+    matchedWorkflows.push(workflowFile)
+  }
+  core.endGroup()
+
+  core.info(`Matched ${matchedWorkflows.length} workflows`)
+  for (const workflowFile of matchedWorkflows) {
+    core.info(`- ${workflowFile.filename}`)
+  }
+  return matchedWorkflows
+}
+
+const matchPush = async (workflowFiles: WorkflowFile[], context: Context) => {
+  assert('before' in context.payload && 'after' in context.payload && 'ref' in context.payload)
+
+  core.startGroup(`Comparing the before and after commits of the push event`)
+  const changedFiles = await git.compareTwoCommits(context.payload.before, context.payload.after, context)
+  core.info(`Found ${changedFiles.length} changed files`)
+
+  const matchedWorkflows = []
+  for (const workflowFile of workflowFiles) {
+    if (!matchPushRef(workflowFile.workflow, context.payload.ref)) {
+      core.info(`${workflowFile.filename}: ref did not match`)
+      continue
+    }
+    if (!matchPushPaths(workflowFile.workflow, changedFiles)) {
       core.info(`${workflowFile.filename}: changed files did not match`)
       continue
     }

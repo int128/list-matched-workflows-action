@@ -37,6 +37,22 @@ export const compareMergeCommit = async (context: Context): Promise<string[]> =>
   return diff.split('\n').filter((line) => line)
 }
 
+export const compareTwoCommits = async (before: string, after: string, context: Context): Promise<string[]> => {
+  await exec.exec(
+    'git',
+    [...gitTokenConfigFlags(context), 'fetch', '--quiet', '--no-tags', '--depth=1', 'origin', before, after],
+    {
+      env: {
+        ...process.env,
+        CONFIG_VALUE_AUTHORIZATION_HEADER: authorizationHeader(),
+      },
+    },
+  )
+  await exec.exec('git', ['diff', `--output=${context.runnerTemp}/diff`, '--name-only', before, after])
+  const diff = await fs.readFile(`${context.runnerTemp}/diff`, 'utf-8')
+  return diff.split('\n').filter((line) => line)
+}
+
 const gitTokenConfigFlags = (context: Context) => {
   const origin = new URL(context.serverUrl).origin
   return [
