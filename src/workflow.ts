@@ -1,3 +1,4 @@
+import assert from 'node:assert'
 import { minimatch } from 'minimatch'
 import * as z from 'zod'
 import type { PullRequestPayload, PushPayload } from './github.js'
@@ -53,26 +54,34 @@ export const matchPushRef = (workflow: Workflow, ref: string) => {
     return false // No trigger defined
   }
   if (ref.startsWith('refs/heads/')) {
-    const branch = ref.substring('refs/heads/'.length)
-    if (workflow.on.push.branches) {
-      return createGlobMatcher(workflow.on.push.branches)(branch)
-    }
-    if (workflow.on.push['branches-ignore']) {
-      return !createGlobMatcher(workflow.on.push['branches-ignore'])(branch)
-    }
-    return true // No specific branches defined, match all branches
+    return matchPushBranch(workflow, ref.substring('refs/heads/'.length))
   } else if (ref.startsWith('refs/tags/')) {
-    const tag = ref.substring('refs/tags/'.length)
-    if (workflow.on.push.tags) {
-      return createGlobMatcher(workflow.on.push.tags)(tag)
-    }
-    if (workflow.on.push['tags-ignore']) {
-      return !createGlobMatcher(workflow.on.push['tags-ignore'])(tag)
-    }
-    return true // No specific branches defined, match all branches
+    return matchPushTag(workflow, ref.substring('refs/tags/'.length))
   } else {
     throw new Error(`ref must be either branch or tag: ${ref}`)
   }
+}
+
+const matchPushBranch = (workflow: Workflow, branch: string) => {
+  assert(workflow.on.push)
+  if (workflow.on.push.branches) {
+    return createGlobMatcher(workflow.on.push.branches)(branch)
+  }
+  if (workflow.on.push['branches-ignore']) {
+    return !createGlobMatcher(workflow.on.push['branches-ignore'])(branch)
+  }
+  return true // No specific branches defined, match all branches
+}
+
+const matchPushTag = (workflow: Workflow, tag: string) => {
+  assert(workflow.on.push)
+  if (workflow.on.push.tags) {
+    return createGlobMatcher(workflow.on.push.tags)(tag)
+  }
+  if (workflow.on.push['tags-ignore']) {
+    return !createGlobMatcher(workflow.on.push['tags-ignore'])(tag)
+  }
+  return true // No specific tags defined, match all tags
 }
 
 export const matchPushPaths = (workflow: Workflow, paths: string[]) => {

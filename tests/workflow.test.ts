@@ -5,6 +5,8 @@ import {
   matchPullRequestBranch,
   matchPullRequestPaths,
   matchPullRequestType,
+  matchPushPaths,
+  matchPushRef,
   parseWorkflow,
 } from '../src/workflow.js'
 
@@ -182,5 +184,89 @@ describe('matchPullRequestPaths', () => {
 
     expect(matchPullRequestPaths(workflow, ['docs/guide.md', 'README.md'])).toBe(false)
     expect(matchPullRequestPaths(workflow, ['docs/guide.md', 'src/index.ts'])).toBe(true)
+  })
+})
+
+describe('matchPushRef', () => {
+  it('does not match when push is not configured', () => {
+    expect(matchPushRef(parseWorkflow({ on: {} }), 'refs/heads/main')).toBe(false)
+  })
+
+  it('matches every branch or tag when no ref filter is configured', () => {
+    const workflow = parseWorkflow({ on: { push: {} } })
+
+    expect(matchPushRef(workflow, 'refs/heads/main')).toBe(true)
+    expect(matchPushRef(workflow, 'refs/tags/v1.0.0')).toBe(true)
+  })
+
+  it('matches branches against branches and branches-ignore', () => {
+    const workflow = parseWorkflow({
+      on: { push: { branches: ['main', 'release/**'] } },
+    })
+
+    expect(matchPushRef(workflow, 'refs/heads/main')).toBe(true)
+    expect(matchPushRef(workflow, 'refs/heads/release/1.0')).toBe(true)
+    expect(matchPushRef(workflow, 'refs/heads/feature/example')).toBe(false)
+
+    const ignoredWorkflow = parseWorkflow({
+      on: { push: { 'branches-ignore': ['release/**', 'dependabot/**'] } },
+    })
+
+    expect(matchPushRef(ignoredWorkflow, 'refs/heads/main')).toBe(true)
+    expect(matchPushRef(ignoredWorkflow, 'refs/heads/release/1.0')).toBe(false)
+    expect(matchPushRef(ignoredWorkflow, 'refs/heads/dependabot/npm')).toBe(false)
+  })
+
+  it('matches tags against tags and tags-ignore', () => {
+    const workflow = parseWorkflow({
+      on: { push: { tags: ['v*', 'release/**'] } },
+    })
+
+    expect(matchPushRef(workflow, 'refs/tags/v1.0.0')).toBe(true)
+    expect(matchPushRef(workflow, 'refs/tags/release/1.0')).toBe(true)
+    expect(matchPushRef(workflow, 'refs/tags/beta')).toBe(false)
+
+    const ignoredWorkflow = parseWorkflow({
+      on: { push: { 'tags-ignore': ['beta*'] } },
+    })
+
+    expect(matchPushRef(ignoredWorkflow, 'refs/tags/v1.0.0')).toBe(true)
+    expect(matchPushRef(ignoredWorkflow, 'refs/tags/beta.1')).toBe(false)
+  })
+
+  it('throws for refs that are neither branches nor tags', () => {
+    const workflow = parseWorkflow({ on: { push: {} } })
+
+    expect(() => matchPushRef(workflow, 'refs/pull/1/merge')).toThrow(
+      'ref must be either branch or tag: refs/pull/1/merge',
+    )
+  })
+})
+
+describe('matchPushPaths', () => {
+  it('does not match when push is not configured', () => {
+    expect(matchPushPaths(parseWorkflow({ on: {} }), ['src/index.ts'])).toBe(false)
+  })
+
+  it('matches every change when no path filter is configured', () => {
+    expect(matchPushPaths(parseWorkflow({ on: { push: {} } }), ['docs/readme.md'])).toBe(true)
+  })
+
+  it('matches when at least one changed path matches paths', () => {
+    const workflow = parseWorkflow({
+      on: { push: { paths: ['src/**', '*.yml'] } },
+    })
+
+    expect(matchPushPaths(workflow, ['docs/readme.md', 'src/index.ts'])).toBe(true)
+    expect(matchPushPaths(workflow, ['docs/readme.md'])).toBe(false)
+  })
+
+  it('matches unless every changed path is ignored', () => {
+    const workflow = parseWorkflow({
+      on: { push: { 'paths-ignore': ['docs/**', '*.md'] } },
+    })
+
+    expect(matchPushPaths(workflow, ['docs/guide.md', 'README.md'])).toBe(false)
+    expect(matchPushPaths(workflow, ['docs/guide.md', 'src/index.ts'])).toBe(true)
   })
 })
