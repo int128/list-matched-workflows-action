@@ -1,5 +1,11 @@
 import { minimatch } from 'minimatch'
 import * as z from 'zod'
+import type { PullRequestPayload, PushPayload } from './github.js'
+
+export const matchPullRequest = (workflow: Workflow, payload: PullRequestPayload, changedFiles: string[]) =>
+  matchPullRequestType(workflow, payload.action) &&
+  matchPullRequestBranch(workflow, payload.pull_request.base.ref) &&
+  matchPullRequestPaths(workflow, changedFiles)
 
 export const matchPullRequestType = (workflow: Workflow, type: string) => {
   if (!workflow.on.pull_request) {
@@ -11,7 +17,7 @@ export const matchPullRequestType = (workflow: Workflow, type: string) => {
   return workflow.on.pull_request.types.includes(type)
 }
 
-export const matchPullRequestBranch = (workflow: Workflow, branch: string) => {
+const matchPullRequestBranch = (workflow: Workflow, branch: string) => {
   if (!workflow.on.pull_request) {
     return false // No trigger defined
   }
@@ -24,7 +30,7 @@ export const matchPullRequestBranch = (workflow: Workflow, branch: string) => {
   return true // No specific branches defined, match all branches
 }
 
-export const matchPullRequestPaths = (workflow: Workflow, paths: string[]) => {
+const matchPullRequestPaths = (workflow: Workflow, paths: string[]) => {
   if (!workflow.on.pull_request) {
     return false // No trigger defined
   }
@@ -39,7 +45,10 @@ export const matchPullRequestPaths = (workflow: Workflow, paths: string[]) => {
   return true // No specific paths defined, match all paths
 }
 
-export const matchPushRef = (workflow: Workflow, ref: string) => {
+export const matchPush = (workflow: Workflow, payload: PushPayload, changedFiles: string[]) =>
+  matchPushRef(workflow, payload.ref) && matchPushPaths(workflow, changedFiles)
+
+const matchPushRef = (workflow: Workflow, ref: string) => {
   if (!workflow.on.push) {
     return false // No trigger defined
   }

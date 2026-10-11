@@ -5,8 +5,14 @@ import type { webhooks } from '@octokit/openapi-webhooks-types'
 
 export const getToken = () => core.getInput('token')
 
-type Payload<Event extends keyof webhooks> = webhooks[Event]['post']['requestBody']['content']['application/json']
+export type Payload<Event extends keyof webhooks> =
+  webhooks[Event]['post']['requestBody']['content']['application/json']
 type PossiblePayload = Payload<keyof webhooks>
+
+type PullRequestEvent = Extract<keyof webhooks, `pull-request-${string}`>
+export type PullRequestPayload = Payload<PullRequestEvent>
+
+export type PushPayload = Payload<'push'>
 
 export type Context = {
   repo: {
