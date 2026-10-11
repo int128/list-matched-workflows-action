@@ -5,13 +5,10 @@ import type { webhooks } from '@octokit/openapi-webhooks-types'
 
 export const getToken = () => core.getInput('token')
 
-export type Payload<Event extends keyof webhooks> =
-  webhooks[Event]['post']['requestBody']['content']['application/json']
-type PossiblePayload = Payload<keyof webhooks>
+type WebhookEvent = keyof webhooks
+type Payload<E extends WebhookEvent> = webhooks[E]['post']['requestBody']['content']['application/json']
 
-type PullRequestEvent = Extract<keyof webhooks, `pull-request-${string}`>
-export type PullRequestPayload = Payload<PullRequestEvent>
-
+export type PullRequestPayload = Payload<Extract<keyof webhooks, `pull-request-${string}`>>
 export type PushPayload = Payload<'push'>
 
 export type Context = {
@@ -22,7 +19,7 @@ export type Context = {
   sha: string
   serverUrl: string
   runnerTemp: string
-  payload: PossiblePayload
+  payload: Payload<WebhookEvent>
 }
 
 export const getContext = async (): Promise<Context> => {
@@ -32,7 +29,7 @@ export const getContext = async (): Promise<Context> => {
     sha: getEnv('GITHUB_SHA'),
     serverUrl: getEnv('GITHUB_SERVER_URL'),
     runnerTemp: getEnv('RUNNER_TEMP'),
-    payload: JSON.parse(await fs.readFile(getEnv('GITHUB_EVENT_PATH'), 'utf-8')) as PossiblePayload,
+    payload: JSON.parse(await fs.readFile(getEnv('GITHUB_EVENT_PATH'), 'utf-8')) as Payload<WebhookEvent>,
   }
 }
 

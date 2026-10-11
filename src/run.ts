@@ -1,4 +1,3 @@
-import assert from 'node:assert'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as core from '@actions/core'
@@ -23,55 +22,34 @@ type WorkflowFile = {
 
 export const run = async (inputs: Inputs, context: Context): Promise<Outputs> => {
   const workflowFiles = await parseWorkflowFiles(inputs.workflows)
-  core.startGroup(`Filtering ${workflowFiles.length} workflows based on the event`)
+  const matchedWorkflows = await matchWorkflows(workflowFiles, context)
+  core.info(`Matched ${matchedWorkflows.length} workflows`)
+  for (const workflowFile of matchedWorkflows) {
+    core.info(`- ${workflowFile.filename}`)
+  }
+  return { matchedWorkflows }
+}
 
-  if ('pull_request' in context.payload) {
-    const matchedWorkflows = await matchPullRequest(workflowFiles, context)
-    return { matchedWorkflows }
+const matchWorkflows = async (workflowFiles: WorkflowFile[], context: Context) => {
+  const { payload } = context
+
+  if ('pull_request' in payload) {
+    core.startGroup(`Comparing the base branch and merge commit of the pull request`)
+    const changedFiles = await git.compareMergeCommit(context)
+    core.endGroup()
+    core.info(`Found ${changedFiles.length} changed files`)
+    return workflowFiles.filter((f) => workflow.matchPullRequest(f.workflow, payload, changedFiles))
   }
-  if ('before' in context.payload && 'after' in context.payload) {
-    const matchedWorkflows = await matchPush(workflowFiles, context)
-    return { matchedWorkflows }
+
+  if ('before' in payload && 'after' in payload && 'ref' in payload) {
+    core.startGroup(`Comparing the before and after commits of the push event`)
+    const changedFiles = await git.compareTwoCommits(context, payload)
+    core.endGroup()
+    core.info(`Found ${changedFiles.length} changed files`)
+    return workflowFiles.filter((f) => workflow.matchPush(f.workflow, payload, changedFiles))
   }
+
   throw new Error(`This action must be run on pull_request or push event`)
-}
-
-const matchPullRequest = async (workflowFiles: WorkflowFile[], context: Context) => {
-  const { payload } = context
-  assert('pull_request' in payload)
-  core.info(`pull_request.type: ${payload.action}`)
-  core.info(`pull_request.branch: ${payload.pull_request.base.ref}`)
-
-  core.startGroup(`Comparing the base branch and merge commit of the pull request`)
-  const changedFiles = await git.compareMergeCommit(context)
-  core.info(`Found ${changedFiles.length} changed files`)
-
-  const matchedWorkflows = workflowFiles.filter((workflowFile) =>
-    workflow.matchPullRequest(workflowFile.workflow, payload, changedFiles),
-  )
-  core.info(`Matched ${matchedWorkflows.length} workflows`)
-  for (const workflowFile of matchedWorkflows) {
-    core.info(`- ${workflowFile.filename}`)
-  }
-  return matchedWorkflows
-}
-
-const matchPush = async (workflowFiles: WorkflowFile[], context: Context) => {
-  const { payload } = context
-  assert('before' in payload && 'after' in payload && 'ref' in payload)
-
-  core.startGroup(`Comparing the before and after commits of the push event`)
-  const changedFiles = await git.compareTwoCommits(payload.before, payload.after, context)
-  core.info(`Found ${changedFiles.length} changed files`)
-
-  const matchedWorkflows = workflowFiles.filter((workflowFile) =>
-    workflow.matchPush(workflowFile.workflow, payload, changedFiles),
-  )
-  core.info(`Matched ${matchedWorkflows.length} workflows`)
-  for (const workflowFile of matchedWorkflows) {
-    core.info(`- ${workflowFile.filename}`)
-  }
-  return matchedWorkflows
 }
 
 const parseWorkflowFiles = async (pattern: string) => {
@@ -85,6 +63,6 @@ const parseWorkflowFiles = async (pattern: string) => {
       workflow: workflow.parseWorkflow(workflowYaml),
     })
   }
-  core.endGroup()
+  core.info(`Found ${workflowFiles.length} workflows`)
   return workflowFiles
 }

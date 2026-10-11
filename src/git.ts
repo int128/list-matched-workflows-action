@@ -1,7 +1,7 @@
 import * as fs from 'node:fs/promises'
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
-import { type Context, getToken } from './github.js'
+import { type Context, getToken, type PushPayload } from './github.js'
 
 export const compareMergeCommit = async (context: Context): Promise<string[]> => {
   await exec.exec(
@@ -37,7 +37,7 @@ export const compareMergeCommit = async (context: Context): Promise<string[]> =>
   return diff.split('\n').filter((line) => line)
 }
 
-export const compareTwoCommits = async (before: string, after: string, context: Context): Promise<string[]> => {
+export const compareTwoCommits = async (context: Context, { before, after }: PushPayload): Promise<string[]> => {
   await exec.exec(
     'git',
     [...gitTokenConfigFlags(context), 'fetch', '--quiet', '--no-tags', '--depth=1', 'origin', before, after],
