@@ -1,9 +1,12 @@
 import assert from 'node:assert'
 import * as fs from 'node:fs/promises'
 import * as core from '@actions/core'
-import type { WebhookEvent } from '@octokit/webhooks-types'
+import type { webhooks } from '@octokit/openapi-webhooks-types'
 
 export const getToken = () => core.getInput('token')
+
+type Payload<Event extends keyof webhooks> = webhooks[Event]['post']['requestBody']['content']['application/json']
+type PossiblePayload = Payload<keyof webhooks>
 
 export type Context = {
   repo: {
@@ -13,7 +16,7 @@ export type Context = {
   sha: string
   serverUrl: string
   runnerTemp: string
-  payload: WebhookEvent
+  payload: PossiblePayload
 }
 
 export const getContext = async (): Promise<Context> => {
@@ -23,7 +26,7 @@ export const getContext = async (): Promise<Context> => {
     sha: getEnv('GITHUB_SHA'),
     serverUrl: getEnv('GITHUB_SERVER_URL'),
     runnerTemp: getEnv('RUNNER_TEMP'),
-    payload: JSON.parse(await fs.readFile(getEnv('GITHUB_EVENT_PATH'), 'utf-8')) as WebhookEvent,
+    payload: JSON.parse(await fs.readFile(getEnv('GITHUB_EVENT_PATH'), 'utf-8')) as PossiblePayload,
   }
 }
 
