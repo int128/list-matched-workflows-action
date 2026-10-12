@@ -41,6 +41,10 @@ export const comparePushedCommits = async (context: Context, payload: PushPayloa
   if (payload.before === '0000000000000000000000000000000000000000') {
     return await comparePushedNewBranch(context, payload)
   }
+  return await comparePushedExistingBranch(context, payload)
+}
+
+const comparePushedExistingBranch = async (context: Context, payload: PushPayload): Promise<string[]> => {
   const { before, after } = payload
   await exec.exec(
     'git',
@@ -59,22 +63,10 @@ export const comparePushedCommits = async (context: Context, payload: PushPayloa
 
 const comparePushedNewBranch = async (context: Context, payload: PushPayload): Promise<string[]> => {
   const ancestor = payload.commits[0].id
-  if (!ancestor) {
-    return []
-  }
   await exec.exec(
     'git',
-    [
-      ...gitTokenConfigFlags(context),
-      'fetch',
-      '--quiet',
-      '--no-tags',
-      // Fetch the parent of ancestor.
-      '--depth=2',
-      'origin',
-      ancestor,
-      payload.after,
-    ],
+    // Fetch the parent of ancestor.
+    [...gitTokenConfigFlags(context), 'fetch', '--quiet', '--no-tags', '--depth=2', 'origin', ancestor, payload.after],
     {
       env: {
         ...process.env,
