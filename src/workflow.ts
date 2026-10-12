@@ -54,8 +54,10 @@ export const matchPush = (workflow: Workflow, payload: PushPayload, changedFiles
   matchPushRef(workflow, payload.ref) && matchPushPaths(workflow, changedFiles)
 
 export const matchPushRef = (workflow: Workflow, ref: string) => {
-  if (!workflow.on.push) {
+  if (workflow.on.push === undefined) {
     return false
+  } else if (workflow.on.push === null) {
+    return true
   } else if (ref.startsWith('refs/heads/')) {
     return matchPushBranch(workflow, ref.substring('refs/heads/'.length))
   } else if (ref.startsWith('refs/tags/')) {
@@ -71,6 +73,8 @@ const matchPushBranch = (workflow: Workflow, branch: string) => {
     return createGlobMatcher(workflow.on.push.branches)(branch)
   } else if (workflow.on.push['branches-ignore']) {
     return !createGlobMatcher(workflow.on.push['branches-ignore'])(branch)
+  } else if (workflow.on.push.tags || workflow.on.push['tags-ignore']) {
+    return false // When only tags or tags-ignore is set, no match.
   } else {
     return true
   }
@@ -82,14 +86,18 @@ const matchPushTag = (workflow: Workflow, tag: string) => {
     return createGlobMatcher(workflow.on.push.tags)(tag)
   } else if (workflow.on.push['tags-ignore']) {
     return !createGlobMatcher(workflow.on.push['tags-ignore'])(tag)
+  } else if (workflow.on.push.branches || workflow.on.push['branches-ignore']) {
+    return false // When only branches or branches-ignore is set, no match.
   } else {
     return true
   }
 }
 
 export const matchPushPaths = (workflow: Workflow, paths: string[]) => {
-  if (!workflow.on.push) {
+  if (workflow.on.push === undefined) {
     return false
+  } else if (workflow.on.push === null) {
+    return true
   } else if (workflow.on.push.paths) {
     const matcher = createGlobMatcher(workflow.on.push.paths)
     return paths.some((path) => matcher(path))

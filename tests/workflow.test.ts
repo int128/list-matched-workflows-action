@@ -243,55 +243,98 @@ describe('matchPullRequestPaths', () => {
 })
 
 describe('matchPushRef', () => {
-  it('does not match when push is not configured', () => {
+  it('does not match when push is not set', () => {
     expect(matchPushRef(parseWorkflow({ on: {} }), 'refs/heads/main')).toBe(false)
+    expect(matchPushRef(parseWorkflow({ on: {} }), 'refs/tags/v1.0.0')).toBe(false)
   })
 
-  it('matches every branch or tag when no ref filter is configured', () => {
-    const workflow = parseWorkflow({ on: { push: {} } })
-
-    expect(matchPushRef(workflow, 'refs/heads/main')).toBe(true)
-    expect(matchPushRef(workflow, 'refs/tags/v1.0.0')).toBe(true)
+  it('matches every branch or tag when push is null', () => {
+    expect(matchPushRef(parseWorkflow({ on: { push: null } }), 'refs/heads/main')).toBe(true)
+    expect(matchPushRef(parseWorkflow({ on: { push: null } }), 'refs/tags/v1.0.0')).toBe(true)
   })
 
-  it('matches branches against branches and branches-ignore', () => {
+  it('matches every branch or tag when no ref filter is set', () => {
+    expect(matchPushRef(parseWorkflow({ on: { push: {} } }), 'refs/heads/main')).toBe(true)
+    expect(matchPushRef(parseWorkflow({ on: { push: {} } }), 'refs/tags/v1.0.0')).toBe(true)
+  })
+
+  it('matches branches against branches', () => {
     const workflow = parseWorkflow({
-      on: { push: { branches: ['main', 'release/**'] } },
+      on: {
+        push: {
+          branches: ['main', 'release/**'],
+        },
+      },
     })
 
     expect(matchPushRef(workflow, 'refs/heads/main')).toBe(true)
     expect(matchPushRef(workflow, 'refs/heads/release/1.0')).toBe(true)
     expect(matchPushRef(workflow, 'refs/heads/feature/example')).toBe(false)
-
-    const ignoredWorkflow = parseWorkflow({
-      on: { push: { 'branches-ignore': ['release/**', 'dependabot/**'] } },
-    })
-
-    expect(matchPushRef(ignoredWorkflow, 'refs/heads/main')).toBe(true)
-    expect(matchPushRef(ignoredWorkflow, 'refs/heads/release/1.0')).toBe(false)
-    expect(matchPushRef(ignoredWorkflow, 'refs/heads/dependabot/npm')).toBe(false)
+    expect(matchPushRef(workflow, 'refs/tags/v1.0.0')).toBe(false)
   })
 
-  it('matches tags against tags and tags-ignore', () => {
+  it('matches branches against branches-ignore', () => {
     const workflow = parseWorkflow({
-      on: { push: { tags: ['v*', 'release/**'] } },
+      on: {
+        push: {
+          'branches-ignore': ['release/**', 'dependabot/**'],
+        },
+      },
+    })
+
+    expect(matchPushRef(workflow, 'refs/heads/main')).toBe(true)
+    expect(matchPushRef(workflow, 'refs/heads/release/1.0')).toBe(false)
+    expect(matchPushRef(workflow, 'refs/heads/dependabot/npm')).toBe(false)
+    expect(matchPushRef(workflow, 'refs/tags/v1.0.0')).toBe(false)
+  })
+
+  it('matches tags against tags', () => {
+    const workflow = parseWorkflow({
+      on: {
+        push: {
+          tags: ['v*', 'release/**'],
+        },
+      },
     })
 
     expect(matchPushRef(workflow, 'refs/tags/v1.0.0')).toBe(true)
     expect(matchPushRef(workflow, 'refs/tags/release/1.0')).toBe(true)
     expect(matchPushRef(workflow, 'refs/tags/beta')).toBe(false)
+    expect(matchPushRef(workflow, 'refs/heads/main')).toBe(false)
+  })
 
-    const ignoredWorkflow = parseWorkflow({
-      on: { push: { 'tags-ignore': ['beta*'] } },
+  it('matches tags against tags-ignore', () => {
+    const workflow = parseWorkflow({
+      on: {
+        push: {
+          'tags-ignore': ['beta*'],
+        },
+      },
     })
 
-    expect(matchPushRef(ignoredWorkflow, 'refs/tags/v1.0.0')).toBe(true)
-    expect(matchPushRef(ignoredWorkflow, 'refs/tags/beta.1')).toBe(false)
+    expect(matchPushRef(workflow, 'refs/tags/v1.0.0')).toBe(true)
+    expect(matchPushRef(workflow, 'refs/tags/beta.1')).toBe(false)
+    expect(matchPushRef(workflow, 'refs/heads/main')).toBe(false)
+  })
+
+  it('matches branches and tags when both filters are configured', () => {
+    const workflow = parseWorkflow({
+      on: {
+        push: {
+          branches: ['main'],
+          tags: ['v*'],
+        },
+      },
+    })
+
+    expect(matchPushRef(workflow, 'refs/heads/main')).toBe(true)
+    expect(matchPushRef(workflow, 'refs/heads/dependabot/npm')).toBe(false)
+    expect(matchPushRef(workflow, 'refs/tags/v1.0.0')).toBe(true)
+    expect(matchPushRef(workflow, 'refs/tags/beta')).toBe(false)
   })
 
   it('throws for refs that are neither branches nor tags', () => {
     const workflow = parseWorkflow({ on: { push: {} } })
-
     expect(() => matchPushRef(workflow, 'refs/pull/1/merge')).toThrow(
       'ref must be either branch or tag: refs/pull/1/merge',
     )
