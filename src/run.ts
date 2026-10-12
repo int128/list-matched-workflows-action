@@ -1,3 +1,4 @@
+import assert from 'node:assert'
 import * as fs from 'node:fs/promises'
 import * as path from 'node:path'
 import * as core from '@actions/core'
@@ -6,7 +7,6 @@ import * as yaml from 'js-yaml'
 import * as git from './git.js'
 import type { Context } from './github.js'
 import { matchPullRequest, matchPush, parseWorkflow, type Workflow } from './workflow.js'
-import assert from 'node:assert'
 
 type Inputs = {
   workflows: string
