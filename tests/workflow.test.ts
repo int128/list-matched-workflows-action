@@ -52,7 +52,7 @@ on:
     expect(workflow).toEqual({ on: {} })
   })
 
-  it('parses a workflow with empty pull_request', () => {
+  it('parses a workflow with null pull_request', () => {
     const workflow = parseWorkflow(
       yaml.load(`
 on:
@@ -60,6 +60,16 @@ on:
 `),
     )
     expect(workflow).toEqual({ on: { pull_request: null } })
+  })
+
+  it('parses a workflow with empty pull_request', () => {
+    const workflow = parseWorkflow(
+      yaml.load(`
+on:
+  pull_request: {}
+`),
+    )
+    expect(workflow).toEqual({ on: { pull_request: {} } })
   })
 
   it('parses a workflow with minimal pull_request', () => {
