@@ -68,8 +68,17 @@ const comparePushedNewBranch = async (context: Context, payload: PushPayload): P
   const ancestor = payload.commits[0].id
   await exec.exec(
     'git',
-    // Fetch the parent of ancestor.
-    [...gitTokenConfigFlags(context), 'fetch', '--quiet', '--no-tags', '--depth=2', 'origin', ancestor, payload.after],
+    [
+      ...gitTokenConfigFlags(context),
+      'fetch',
+      '--quiet',
+      '--no-tags',
+      // Fetch the parent of ancestor.
+      '--depth=2',
+      'origin',
+      ancestor,
+      payload.after,
+    ],
     {
       env: {
         ...process.env,
