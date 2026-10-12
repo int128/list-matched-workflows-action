@@ -37,26 +37,11 @@ export const compareMergeCommit = async (context: Context): Promise<string[]> =>
   return diff.split('\n').filter((line) => line)
 }
 
-export const comparePushedCommits = async (
-  context: Context,
-  { before, after, commits }: PushPayload,
-): Promise<string[]> => {
-  if (before === '0000000000000000000000000000000000000000') {
-    const ancestor = commits[0].id
-    await exec.exec(
-      'git',
-      [...gitTokenConfigFlags(context), 'fetch', '--quiet', '--no-tags', '--depth=2', 'origin', ancestor, after],
-      {
-        env: {
-          ...process.env,
-          CONFIG_VALUE_AUTHORIZATION_HEADER: authorizationHeader(),
-        },
-      },
-    )
-    await exec.exec('git', ['diff', `--output=${context.runnerTemp}/diff`, '--name-only', `${ancestor}^`, after])
-    const diff = await fs.readFile(`${context.runnerTemp}/diff`, 'utf-8')
-    return diff.split('\n').filter((line) => line)
+export const comparePushedCommits = async (context: Context, payload: PushPayload): Promise<string[]> => {
+  if (payload.before === '0000000000000000000000000000000000000000') {
+    return await comparePushedNewBranch(context, payload)
   }
+  const { before, after } = payload
   await exec.exec(
     'git',
     [...gitTokenConfigFlags(context), 'fetch', '--quiet', '--no-tags', '--depth=1', 'origin', before, after],
@@ -68,6 +53,44 @@ export const comparePushedCommits = async (
     },
   )
   await exec.exec('git', ['diff', `--output=${context.runnerTemp}/diff`, '--name-only', before, after])
+  const diff = await fs.readFile(`${context.runnerTemp}/diff`, 'utf-8')
+  return diff.split('\n').filter((line) => line)
+}
+
+const comparePushedNewBranch = async (context: Context, payload: PushPayload): Promise<string[]> => {
+  const ancestor = payload.commits[0].id
+  if (!ancestor) {
+    return []
+  }
+  await exec.exec(
+    'git',
+    [
+      ...gitTokenConfigFlags(context),
+      'fetch',
+      '--quiet',
+      '--no-tags',
+      // Fetch the parent of ancestor.
+      '--depth=2',
+      'origin',
+      ancestor,
+      payload.after,
+    ],
+    {
+      env: {
+        ...process.env,
+        CONFIG_VALUE_AUTHORIZATION_HEADER: authorizationHeader(),
+      },
+    },
+  )
+  await exec.exec('git', [
+    'diff',
+    `--output=${context.runnerTemp}/diff`,
+    '--name-only',
+    // When a new branch is pushed, compare the parent of the ancestor of the deepest commit pushed.
+    // https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#git-diff-comparisons
+    `${ancestor}^`,
+    payload.after,
+  ])
   const diff = await fs.readFile(`${context.runnerTemp}/diff`, 'utf-8')
   return diff.split('\n').filter((line) => line)
 }
