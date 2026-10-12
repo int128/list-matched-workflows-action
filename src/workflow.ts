@@ -5,6 +5,7 @@ export const matchPullRequestType = (workflow: Workflow, type: string) => {
   if (workflow.on.pull_request === undefined) {
     return false
   } else if (workflow.on.pull_request === null || !workflow.on.pull_request.types) {
+    // By default, a workflow runs on opened, synchronize, or reopened.
     // https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request
     return ['opened', 'synchronize', 'reopened'].includes(type)
   } else {
