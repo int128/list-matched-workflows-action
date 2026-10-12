@@ -38,6 +38,9 @@ export const compareMergeCommit = async (context: Context): Promise<string[]> =>
 }
 
 export const comparePushedCommits = async (context: Context, payload: PushPayload): Promise<string[]> => {
+  if (payload.after === '0000000000000000000000000000000000000000') {
+    return []
+  }
   if (payload.before === '0000000000000000000000000000000000000000') {
     return await comparePushedNewBranch(context, payload)
   }
