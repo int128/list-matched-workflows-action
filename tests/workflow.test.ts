@@ -109,17 +109,38 @@ on:
 })
 
 describe('matchPullRequestType', () => {
-  it('does not match when pull_request is not configured', () => {
+  it('does not match when pull_request is not set', () => {
     expect(matchPullRequestType(parseWorkflow({ on: {} }), 'opened')).toBe(false)
-    expect(matchPullRequestType(parseWorkflow({ on: { pull_request: null } }), 'opened')).toBe(false)
   })
 
-  it('matches every type when no type filter is configured', () => {
-    expect(matchPullRequestType(parseWorkflow({ on: { pull_request: {} } }), 'opened')).toBe(true)
+  it('matches the default pull request types when pull_request is null', () => {
+    const workflow = parseWorkflow({ on: { pull_request: null } })
+
+    expect(matchPullRequestType(workflow, 'opened')).toBe(true)
+    expect(matchPullRequestType(workflow, 'synchronize')).toBe(true)
+    expect(matchPullRequestType(workflow, 'reopened')).toBe(true)
+    expect(matchPullRequestType(workflow, 'closed')).toBe(false)
+    expect(matchPullRequestType(workflow, 'labeled')).toBe(false)
+  })
+
+  it('matches the default pull request types when no type filter is configured', () => {
+    const workflow = parseWorkflow({ on: { pull_request: {} } })
+
+    expect(matchPullRequestType(workflow, 'opened')).toBe(true)
+    expect(matchPullRequestType(workflow, 'synchronize')).toBe(true)
+    expect(matchPullRequestType(workflow, 'reopened')).toBe(true)
+    expect(matchPullRequestType(workflow, 'closed')).toBe(false)
+    expect(matchPullRequestType(workflow, 'labeled')).toBe(false)
   })
 
   it('matches only configured pull request types', () => {
-    const workflow = parseWorkflow({ on: { pull_request: { types: ['opened', 'synchronize'] } } })
+    const workflow = parseWorkflow({
+      on: {
+        pull_request: {
+          types: ['opened', 'synchronize'],
+        },
+      },
+    })
 
     expect(matchPullRequestType(workflow, 'opened')).toBe(true)
     expect(matchPullRequestType(workflow, 'synchronize')).toBe(true)
@@ -128,8 +149,12 @@ describe('matchPullRequestType', () => {
 })
 
 describe('matchPullRequestBranch', () => {
-  it('does not match when pull_request is not configured', () => {
+  it('does not match when pull_request is not set', () => {
     expect(matchPullRequestBranch(parseWorkflow({ on: {} }), 'main')).toBe(false)
+  })
+
+  it('matches every branch when pull_request is null', () => {
+    expect(matchPullRequestBranch(parseWorkflow({ on: { pull_request: null } }), 'main')).toBe(true)
   })
 
   it('matches every branch when no branch filter is configured', () => {
@@ -138,7 +163,11 @@ describe('matchPullRequestBranch', () => {
 
   it('matches branches against the configured patterns', () => {
     const workflow = parseWorkflow({
-      on: { pull_request: { branches: ['main', 'release/**'] } },
+      on: {
+        pull_request: {
+          branches: ['main', 'release/**'],
+        },
+      },
     })
 
     expect(matchPullRequestBranch(workflow, 'main')).toBe(true)
@@ -148,7 +177,11 @@ describe('matchPullRequestBranch', () => {
 
   it('excludes branches matching branches-ignore', () => {
     const workflow = parseWorkflow({
-      on: { pull_request: { 'branches-ignore': ['release/**', 'dependabot/**'] } },
+      on: {
+        pull_request: {
+          'branches-ignore': ['release/**', 'dependabot/**'],
+        },
+      },
     })
 
     expect(matchPullRequestBranch(workflow, 'main')).toBe(true)
@@ -158,8 +191,12 @@ describe('matchPullRequestBranch', () => {
 })
 
 describe('matchPullRequestPaths', () => {
-  it('does not match when pull_request is not configured', () => {
+  it('does not match when pull_request is not set', () => {
     expect(matchPullRequestPaths(parseWorkflow({ on: {} }), ['src/index.ts'])).toBe(false)
+  })
+
+  it('matches every change when pull_request is null', () => {
+    expect(matchPullRequestPaths(parseWorkflow({ on: { pull_request: null } }), ['src/index.ts'])).toBe(true)
   })
 
   it('matches every change when no path filter is configured', () => {
@@ -168,7 +205,11 @@ describe('matchPullRequestPaths', () => {
 
   it('matches when at least one changed path matches paths', () => {
     const workflow = parseWorkflow({
-      on: { pull_request: { paths: ['src/**', '*.yml'] } },
+      on: {
+        pull_request: {
+          paths: ['src/**', '*.yml'],
+        },
+      },
     })
 
     expect(matchPullRequestPaths(workflow, ['docs/readme.md', 'src/index.ts'])).toBe(true)
@@ -177,7 +218,11 @@ describe('matchPullRequestPaths', () => {
 
   it('matches unless every changed path is ignored', () => {
     const workflow = parseWorkflow({
-      on: { pull_request: { 'paths-ignore': ['docs/**', '*.md'] } },
+      on: {
+        pull_request: {
+          'paths-ignore': ['docs/**', '*.md'],
+        },
+      },
     })
 
     expect(matchPullRequestPaths(workflow, ['docs/guide.md', 'README.md'])).toBe(false)
