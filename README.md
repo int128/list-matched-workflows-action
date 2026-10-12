@@ -1,6 +1,6 @@
 # list-matched-workflows-action [![ts](https://github.com/int128/list-matched-workflows-action/actions/workflows/ts.yaml/badge.svg)](https://github.com/int128/list-matched-workflows-action/actions/workflows/ts.yaml)
 
-This action lists the matched workflows against the changed files of the current pull request.
+This action lists the matched workflows for the current `pull_request` or `push` event.
 It is useful to run a task based on the changed files.
 
 ## Getting Started
@@ -14,17 +14,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - id: list-matched-workflows
-        uses: int128/list-matched-workflows-action@v0
+        uses: int128/list-matched-workflows-action@v1
         with:
           workflows: |
             .github/workflows/*.yaml
 ```
 
-This action determines the matched workflows based on the following conditions:
+For a `pull_request` event, this action determines the matched workflows based on the following conditions:
 
 - If the workflow has `on.pull_request.types`, it matches the event types of the pull request.
 - If the workflow has `on.pull_request.branches` or `on.pull_request.branches-ignore`, it matches the base branch of the pull request.
 - If the workflow has `on.pull_request.paths` or `on.pull_request.paths-ignore`, it matches the changed files of the pull request.
+
+For a `push` event, it applies the corresponding branch, tag, and path filters:
+
+- If the workflow has `on.push.branches` or `on.push.branches-ignore`, it matches the pushed branch.
+- If the workflow has `on.push.tags` or `on.push.tags-ignore`, it matches the pushed tag.
+- If the workflow has `on.push.paths` or `on.push.paths-ignore`, it matches the changed files. Path filters apply to branches; tag pushes match regardless of path filters, as in GitHub Actions.
 
 For example, if the workflow is defined as follows:
 
@@ -41,6 +47,17 @@ It matches if all of the following conditions are met:
 
 - The pull request is opened against the `main` branch.
 - The pull request has changed files that match the glob pattern `**/*.ts`, such as `src/example.ts`.
+
+For example, a workflow with the following trigger matches a push to `main` when at least one changed file is under `src/`:
+
+```yaml
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/**'
+```
 
 ## Specification
 
