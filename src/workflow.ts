@@ -1,11 +1,10 @@
 import assert from 'node:assert'
 import { minimatch } from 'minimatch'
 import * as z from 'zod'
-import type { PullRequestPayload, PushPayload } from './github.js'
 
-export const matchPullRequest = (workflow: Workflow, payload: PullRequestPayload, changedFiles: string[]) =>
-  matchPullRequestType(workflow, payload.action) &&
-  matchPullRequestBranch(workflow, payload.pull_request.base.ref) &&
+export const matchPullRequest = (workflow: Workflow, action: string, ref: string, changedFiles: string[]) =>
+  matchPullRequestType(workflow, action) &&
+  matchPullRequestBranch(workflow, ref) &&
   matchPullRequestPaths(workflow, changedFiles)
 
 export const matchPullRequestType = (workflow: Workflow, type: string) => {
@@ -50,8 +49,8 @@ export const matchPullRequestPaths = (workflow: Workflow, paths: string[]) => {
   }
 }
 
-export const matchPush = (workflow: Workflow, payload: PushPayload, changedFiles: string[]) =>
-  matchPushRef(workflow, payload.ref) && matchPushPaths(workflow, payload.ref, changedFiles)
+export const matchPush = (workflow: Workflow, ref: string, changedFiles: string[]) =>
+  matchPushRef(workflow, ref) && matchPushPaths(workflow, ref, changedFiles)
 
 export const matchPushRef = (workflow: Workflow, ref: string) => {
   if (workflow.on.push === undefined) {

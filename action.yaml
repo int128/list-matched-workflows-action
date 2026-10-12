@@ -5,6 +5,14 @@ inputs:
   workflows:
     description: Glob pattern to match workflow files
     required: true
+  evaluate-pull-request-base-ref:
+    description: If set, evaluate the branch name instead of the base branch of the current pull request
+    required: false
+    default: ${{ github.event.pull_request.base.ref }}
+  evaluate-push-ref:
+    description: If set, evaluate the ref instead of the current pushed ref
+    required: false
+    default: ${{ github.event.ref }}
   token:
     description: GitHub token
     required: true
