@@ -6,6 +6,7 @@ import * as yaml from 'js-yaml'
 import * as git from './git.js'
 import type { Context } from './github.js'
 import { matchPullRequest, matchPush, parseWorkflow, type Workflow } from './workflow.js'
+import assert from 'node:assert'
 
 type Inputs = {
   workflows: string
@@ -41,6 +42,7 @@ const matchWorkflows = async (workflowFiles: WorkflowFile[], evaluateContext: Ev
   const { payload } = context
 
   if ('pull_request' in payload) {
+    assert(evaluateContext.evaluatePullRequestBaseRef, 'evaluate-pull-request-base-ref is required')
     core.startGroup(`Comparing the base branch and merge commit of the pull request`)
     const changedFiles = await git.compareMergeCommit(context)
     core.endGroup()
@@ -51,6 +53,7 @@ const matchWorkflows = async (workflowFiles: WorkflowFile[], evaluateContext: Ev
   }
 
   if ('before' in payload && 'after' in payload && 'ref' in payload) {
+    assert(evaluateContext.evaluatePushRef, 'evaluate-push-ref is required')
     core.startGroup(`Comparing the before and after commits of the push event`)
     const changedFiles = await git.comparePushedCommits(context, payload)
     core.endGroup()
