@@ -55,9 +55,8 @@ export const matchPush = (workflow: Workflow, payload: PushPayload, changedFiles
 
 export const matchPushRef = (workflow: Workflow, ref: string) => {
   if (!workflow.on.push) {
-    return false // No trigger defined
-  }
-  if (ref.startsWith('refs/heads/')) {
+    return false
+  } else if (ref.startsWith('refs/heads/')) {
     return matchPushBranch(workflow, ref.substring('refs/heads/'.length))
   } else if (ref.startsWith('refs/tags/')) {
     return matchPushTag(workflow, ref.substring('refs/tags/'.length))
@@ -70,37 +69,36 @@ const matchPushBranch = (workflow: Workflow, branch: string) => {
   assert(workflow.on.push)
   if (workflow.on.push.branches) {
     return createGlobMatcher(workflow.on.push.branches)(branch)
-  }
-  if (workflow.on.push['branches-ignore']) {
+  } else if (workflow.on.push['branches-ignore']) {
     return !createGlobMatcher(workflow.on.push['branches-ignore'])(branch)
+  } else {
+    return true
   }
-  return true // No specific branches defined, match all branches
 }
 
 const matchPushTag = (workflow: Workflow, tag: string) => {
   assert(workflow.on.push)
   if (workflow.on.push.tags) {
     return createGlobMatcher(workflow.on.push.tags)(tag)
-  }
-  if (workflow.on.push['tags-ignore']) {
+  } else if (workflow.on.push['tags-ignore']) {
     return !createGlobMatcher(workflow.on.push['tags-ignore'])(tag)
+  } else {
+    return true
   }
-  return true // No specific tags defined, match all tags
 }
 
 export const matchPushPaths = (workflow: Workflow, paths: string[]) => {
   if (!workflow.on.push) {
-    return false // No trigger defined
-  }
-  if (workflow.on.push.paths) {
+    return false
+  } else if (workflow.on.push.paths) {
     const matcher = createGlobMatcher(workflow.on.push.paths)
     return paths.some((path) => matcher(path))
-  }
-  if (workflow.on.push['paths-ignore']) {
+  } else if (workflow.on.push['paths-ignore']) {
     const matcher = createGlobMatcher(workflow.on.push['paths-ignore'])
     return !paths.every((path) => matcher(path))
+  } else {
+    return true
   }
-  return true // No specific paths defined, match all paths
 }
 
 export const createGlobMatcher = (patterns: string[]) => {
