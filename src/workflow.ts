@@ -1,5 +1,12 @@
+import assert from 'node:assert'
 import { minimatch } from 'minimatch'
 import * as z from 'zod'
+import type { PullRequestPayload, PushPayload } from './github.js'
+
+export const matchPullRequest = (workflow: Workflow, payload: PullRequestPayload, changedFiles: string[]) =>
+  matchPullRequestType(workflow, payload.action) &&
+  matchPullRequestBranch(workflow, payload.pull_request.base.ref) &&
+  matchPullRequestPaths(workflow, changedFiles)
 
 export const matchPullRequestType = (workflow: Workflow, type: string) => {
   if (workflow.on.pull_request === undefined) {
@@ -43,6 +50,67 @@ export const matchPullRequestPaths = (workflow: Workflow, paths: string[]) => {
   }
 }
 
+export const matchPush = (workflow: Workflow, payload: PushPayload, changedFiles: string[]) =>
+  matchPushRef(workflow, payload.ref) && matchPushPaths(workflow, payload.ref, changedFiles)
+
+export const matchPushRef = (workflow: Workflow, ref: string) => {
+  if (workflow.on.push === undefined) {
+    return false
+  } else if (workflow.on.push === null) {
+    return true
+  } else if (ref.startsWith('refs/heads/')) {
+    return matchPushBranch(workflow, ref.substring('refs/heads/'.length))
+  } else if (ref.startsWith('refs/tags/')) {
+    return matchPushTag(workflow, ref.substring('refs/tags/'.length))
+  } else {
+    throw new Error(`ref must be either branch or tag: ${ref}`)
+  }
+}
+
+const matchPushBranch = (workflow: Workflow, branch: string) => {
+  assert(workflow.on.push)
+  if (workflow.on.push.branches) {
+    return createGlobMatcher(workflow.on.push.branches)(branch)
+  } else if (workflow.on.push['branches-ignore']) {
+    return !createGlobMatcher(workflow.on.push['branches-ignore'])(branch)
+  } else if (workflow.on.push.tags || workflow.on.push['tags-ignore']) {
+    return false // When only tags or tags-ignore is set, no match.
+  } else {
+    return true
+  }
+}
+
+const matchPushTag = (workflow: Workflow, tag: string) => {
+  assert(workflow.on.push)
+  if (workflow.on.push.tags) {
+    return createGlobMatcher(workflow.on.push.tags)(tag)
+  } else if (workflow.on.push['tags-ignore']) {
+    return !createGlobMatcher(workflow.on.push['tags-ignore'])(tag)
+  } else if (workflow.on.push.branches || workflow.on.push['branches-ignore']) {
+    return false // When only branches or branches-ignore is set, no match.
+  } else {
+    return true
+  }
+}
+
+export const matchPushPaths = (workflow: Workflow, ref: string, paths: string[]) => {
+  if (workflow.on.push === undefined) {
+    return false
+  } else if (workflow.on.push === null) {
+    return true
+  } else if (ref.startsWith('refs/tags/')) {
+    return true // paths only works for branches
+  } else if (workflow.on.push.paths) {
+    const matcher = createGlobMatcher(workflow.on.push.paths)
+    return paths.some((path) => matcher(path))
+  } else if (workflow.on.push['paths-ignore']) {
+    const matcher = createGlobMatcher(workflow.on.push['paths-ignore'])
+    return !paths.every((path) => matcher(path))
+  } else {
+    return true
+  }
+}
+
 export const createGlobMatcher = (patterns: string[]) => {
   return (target: string): boolean => {
     if (patterns.length === 0) {
@@ -70,6 +138,18 @@ const Workflow = z.object({
         types: z.array(z.string()).optional(),
         branches: z.array(z.string()).optional(),
         'branches-ignore': z.array(z.string()).optional(),
+        paths: z.array(z.string()).optional(),
+        'paths-ignore': z.array(z.string()).optional(),
+      })
+      .nullable()
+      .optional(),
+    // https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#onpushbranchestagsbranches-ignoretags-ignore
+    push: z
+      .object({
+        branches: z.array(z.string()).optional(),
+        'branches-ignore': z.array(z.string()).optional(),
+        tags: z.array(z.string()).optional(),
+        'tags-ignore': z.array(z.string()).optional(),
         paths: z.array(z.string()).optional(),
         'paths-ignore': z.array(z.string()).optional(),
       })

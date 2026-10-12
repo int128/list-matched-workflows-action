@@ -1,7 +1,7 @@
 import * as fs from 'node:fs/promises'
 import * as core from '@actions/core'
 import * as exec from '@actions/exec'
-import { type Context, getToken } from './github.js'
+import { type Context, getToken, type PushPayload } from './github.js'
 
 export const compareMergeCommit = async (context: Context): Promise<string[]> => {
   await exec.exec(
@@ -32,6 +32,68 @@ export const compareMergeCommit = async (context: Context): Promise<string[]> =>
     // The second parent is the head commit.
     `${context.sha}^1`,
     context.sha,
+  ])
+  const diff = await fs.readFile(`${context.runnerTemp}/diff`, 'utf-8')
+  return diff.split('\n').filter((line) => line)
+}
+
+export const comparePushedCommits = async (context: Context, payload: PushPayload): Promise<string[]> => {
+  if (payload.after === '0000000000000000000000000000000000000000') {
+    return []
+  }
+  if (payload.before === '0000000000000000000000000000000000000000') {
+    return await comparePushedNewBranch(context, payload)
+  }
+  return await comparePushedExistingBranch(context, payload)
+}
+
+const comparePushedExistingBranch = async (context: Context, payload: PushPayload): Promise<string[]> => {
+  const { before, after } = payload
+  await exec.exec(
+    'git',
+    [...gitTokenConfigFlags(context), 'fetch', '--quiet', '--no-tags', '--depth=1', 'origin', before, after],
+    {
+      env: {
+        ...process.env,
+        CONFIG_VALUE_AUTHORIZATION_HEADER: authorizationHeader(),
+      },
+    },
+  )
+  await exec.exec('git', ['diff', `--output=${context.runnerTemp}/diff`, '--name-only', before, after])
+  const diff = await fs.readFile(`${context.runnerTemp}/diff`, 'utf-8')
+  return diff.split('\n').filter((line) => line)
+}
+
+const comparePushedNewBranch = async (context: Context, payload: PushPayload): Promise<string[]> => {
+  const ancestor = payload.commits[0].id
+  await exec.exec(
+    'git',
+    [
+      ...gitTokenConfigFlags(context),
+      'fetch',
+      '--quiet',
+      '--no-tags',
+      // Fetch the parent of ancestor.
+      '--depth=2',
+      'origin',
+      ancestor,
+      payload.after,
+    ],
+    {
+      env: {
+        ...process.env,
+        CONFIG_VALUE_AUTHORIZATION_HEADER: authorizationHeader(),
+      },
+    },
+  )
+  await exec.exec('git', [
+    'diff',
+    `--output=${context.runnerTemp}/diff`,
+    '--name-only',
+    // When a new branch is pushed, compare the parent of the ancestor of the deepest commit pushed.
+    // https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#git-diff-comparisons
+    `${ancestor}^`,
+    payload.after,
   ])
   const diff = await fs.readFile(`${context.runnerTemp}/diff`, 'utf-8')
   return diff.split('\n').filter((line) => line)

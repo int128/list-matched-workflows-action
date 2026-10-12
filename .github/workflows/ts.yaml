@@ -45,8 +45,7 @@ jobs:
       - run: pnpm i
       - run: pnpm build
 
-      - if: github.event_name == 'pull_request'
-        name: Run int128/list-matched-workflows-action
+      - name: Run int128/list-matched-workflows-action
         id: list-matched-workflows
         uses: ./
         with:
