@@ -37,9 +37,25 @@ export const compareMergeCommit = async (context: Context): Promise<string[]> =>
   return diff.split('\n').filter((line) => line)
 }
 
-export const comparePushedCommits = async (context: Context, { before, after, commits }: PushPayload): Promise<string[]> => {
+export const comparePushedCommits = async (
+  context: Context,
+  { before, after, commits }: PushPayload,
+): Promise<string[]> => {
   if (before === '0000000000000000000000000000000000000000') {
-    before = `${commits[0].id}^`
+    const ancestor = commits[0].id
+    await exec.exec(
+      'git',
+      [...gitTokenConfigFlags(context), 'fetch', '--quiet', '--no-tags', '--depth=2', 'origin', ancestor, after],
+      {
+        env: {
+          ...process.env,
+          CONFIG_VALUE_AUTHORIZATION_HEADER: authorizationHeader(),
+        },
+      },
+    )
+    await exec.exec('git', ['diff', `--output=${context.runnerTemp}/diff`, '--name-only', `${ancestor}^`, after])
+    const diff = await fs.readFile(`${context.runnerTemp}/diff`, 'utf-8')
+    return diff.split('\n').filter((line) => line)
   }
   await exec.exec(
     'git',
