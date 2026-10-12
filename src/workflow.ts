@@ -2,41 +2,45 @@ import { minimatch } from 'minimatch'
 import * as z from 'zod'
 
 export const matchPullRequestType = (workflow: Workflow, type: string) => {
-  if (!workflow.on.pull_request) {
-    return false // No trigger defined
+  if (workflow.on.pull_request === undefined) {
+    return false
+  } else if (workflow.on.pull_request === null || !workflow.on.pull_request.types) {
+    // By default, a workflow runs on opened, synchronize, or reopened.
+    // https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#pull_request
+    return ['opened', 'synchronize', 'reopened'].includes(type)
+  } else {
+    return workflow.on.pull_request.types.includes(type)
   }
-  if (!workflow.on.pull_request.types) {
-    return true // No specific types defined, match all types
-  }
-  return workflow.on.pull_request.types.includes(type)
 }
 
 export const matchPullRequestBranch = (workflow: Workflow, branch: string) => {
-  if (!workflow.on.pull_request) {
-    return false // No trigger defined
-  }
-  if (workflow.on.pull_request.branches) {
+  if (workflow.on.pull_request === undefined) {
+    return false
+  } else if (workflow.on.pull_request === null) {
+    return true
+  } else if (workflow.on.pull_request.branches) {
     return createGlobMatcher(workflow.on.pull_request.branches)(branch)
-  }
-  if (workflow.on.pull_request['branches-ignore']) {
+  } else if (workflow.on.pull_request['branches-ignore']) {
     return !createGlobMatcher(workflow.on.pull_request['branches-ignore'])(branch)
+  } else {
+    return true
   }
-  return true // No specific branches defined, match all branches
 }
 
 export const matchPullRequestPaths = (workflow: Workflow, paths: string[]) => {
-  if (!workflow.on.pull_request) {
-    return false // No trigger defined
-  }
-  if (workflow.on.pull_request.paths) {
+  if (workflow.on.pull_request === undefined) {
+    return false
+  } else if (workflow.on.pull_request === null) {
+    return true
+  } else if (workflow.on.pull_request.paths) {
     const matcher = createGlobMatcher(workflow.on.pull_request.paths)
     return paths.some((path) => matcher(path))
-  }
-  if (workflow.on.pull_request['paths-ignore']) {
+  } else if (workflow.on.pull_request['paths-ignore']) {
     const matcher = createGlobMatcher(workflow.on.pull_request['paths-ignore'])
     return !paths.every((path) => matcher(path))
+  } else {
+    return true
   }
-  return true // No specific paths defined, match all paths
 }
 
 export const createGlobMatcher = (patterns: string[]) => {
