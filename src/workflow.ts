@@ -51,7 +51,7 @@ export const matchPullRequestPaths = (workflow: Workflow, paths: string[]) => {
 }
 
 export const matchPush = (workflow: Workflow, payload: PushPayload, changedFiles: string[]) =>
-  matchPushRef(workflow, payload.ref) && matchPushPaths(workflow, changedFiles)
+  matchPushRef(workflow, payload.ref) && matchPushPaths(workflow, payload.ref, changedFiles)
 
 export const matchPushRef = (workflow: Workflow, ref: string) => {
   if (workflow.on.push === undefined) {
@@ -93,11 +93,13 @@ const matchPushTag = (workflow: Workflow, tag: string) => {
   }
 }
 
-export const matchPushPaths = (workflow: Workflow, paths: string[]) => {
+export const matchPushPaths = (workflow: Workflow, ref: string, paths: string[]) => {
   if (workflow.on.push === undefined) {
     return false
   } else if (workflow.on.push === null) {
     return true
+  } else if (ref.startsWith('refs/tags/')) {
+    return true // paths only works for branches
   } else if (workflow.on.push.paths) {
     const matcher = createGlobMatcher(workflow.on.push.paths)
     return paths.some((path) => matcher(path))

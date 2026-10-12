@@ -342,29 +342,54 @@ describe('matchPushRef', () => {
 })
 
 describe('matchPushPaths', () => {
-  it('does not match when push is not configured', () => {
-    expect(matchPushPaths(parseWorkflow({ on: {} }), ['src/index.ts'])).toBe(false)
+  it('does not match when push is not set', () => {
+    expect(matchPushPaths(parseWorkflow({ on: {} }), 'refs/heads/main', ['src/index.ts'])).toBe(false)
+  })
+
+  it('does not match when push is null', () => {
+    expect(matchPushPaths(parseWorkflow({ on: { push: null } }), 'refs/heads/main', ['src/index.ts'])).toBe(true)
   })
 
   it('matches every change when no path filter is configured', () => {
-    expect(matchPushPaths(parseWorkflow({ on: { push: {} } }), ['docs/readme.md'])).toBe(true)
+    expect(matchPushPaths(parseWorkflow({ on: { push: {} } }), 'refs/heads/main', ['docs/readme.md'])).toBe(true)
   })
 
   it('matches when at least one changed path matches paths', () => {
     const workflow = parseWorkflow({
-      on: { push: { paths: ['src/**', '*.yml'] } },
+      on: {
+        push: {
+          paths: ['src/**', '*.yml'],
+        },
+      },
     })
 
-    expect(matchPushPaths(workflow, ['docs/readme.md', 'src/index.ts'])).toBe(true)
-    expect(matchPushPaths(workflow, ['docs/readme.md'])).toBe(false)
+    expect(matchPushPaths(workflow, 'refs/heads/main', ['docs/readme.md', 'src/index.ts'])).toBe(true)
+    expect(matchPushPaths(workflow, 'refs/heads/main', ['docs/readme.md'])).toBe(false)
   })
 
   it('matches unless every changed path is ignored', () => {
     const workflow = parseWorkflow({
-      on: { push: { 'paths-ignore': ['docs/**', '*.md'] } },
+      on: {
+        push: {
+          'paths-ignore': ['docs/**', '*.md'],
+        },
+      },
     })
 
-    expect(matchPushPaths(workflow, ['docs/guide.md', 'README.md'])).toBe(false)
-    expect(matchPushPaths(workflow, ['docs/guide.md', 'src/index.ts'])).toBe(true)
+    expect(matchPushPaths(workflow, 'refs/heads/main', ['docs/guide.md', 'README.md'])).toBe(false)
+    expect(matchPushPaths(workflow, 'refs/heads/main', ['docs/guide.md', 'src/index.ts'])).toBe(true)
+  })
+
+  it('matches every change when a tag is pushed', () => {
+    const workflow = parseWorkflow({
+      on: {
+        push: {
+          paths: ['src/**', '*.yml'],
+        },
+      },
+    })
+
+    expect(matchPushPaths(workflow, 'refs/tags/v1', ['docs/readme.md', 'src/index.ts'])).toBe(true)
+    expect(matchPushPaths(workflow, 'refs/tags/v1', ['docs/readme.md'])).toBe(true)
   })
 })
