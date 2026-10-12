@@ -6,6 +6,8 @@ try {
   const outputs = await run(
     {
       workflows: core.getInput('workflows', { required: true }),
+      evaluatePullRequestBaseRef: core.getInput('evaluate-pull-request-base-ref', { required: true }),
+      evaluatePushRef: core.getInput('evaluate-push-ref', { required: true }),
     },
     await getContext(),
   )

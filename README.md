@@ -12,7 +12,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - id: list-matched-workflows
         uses: int128/list-matched-workflows-action@v1
         with:
@@ -40,7 +40,7 @@ on:
     branches:
       - main
     paths:
-      - '**/*.ts'
+      - "**/*.ts"
 ```
 
 It matches if all of the following conditions are met:
@@ -56,17 +56,19 @@ on:
     branches:
       - main
     paths:
-      - 'src/**'
+      - "src/**"
 ```
 
 ## Specification
 
 ### Inputs
 
-| Name        | Default        | Description                             |
-| ----------- | -------------- | --------------------------------------- |
-| `workflows` | (required)     | A glob pattern to match workflow files. |
-| `token`     | `github.token` | GitHub token.                           |
+| Name                             | Default                              | Description                                                                              |
+| -------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------- |
+| `workflows`                      | (required)                           | A glob pattern to match workflow files.                                                  |
+| `evaluate-pull-request-base-ref` | `github.event.pull_request.base.ref` | If set, evaluate the branch name instead of the base branch of the current pull request. |
+| `evaluate-push-ref`              | `evaluate-push-ref`                  | If set, evaluate the ref instead of the current pushed ref                               |
+| `token`                          | `github.token`                       | GitHub token.                                                                            |
 
 ### Outputs
 
