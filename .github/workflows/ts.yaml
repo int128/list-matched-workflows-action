@@ -11,6 +11,7 @@ on:
   push:
     branches:
       - main
+      - do-not-merge-test
     paths:
       - src/**
       - tests/**
