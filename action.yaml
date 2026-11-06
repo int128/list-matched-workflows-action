@@ -5,6 +5,10 @@ inputs:
   workflows:
     description: Glob pattern to match workflow files
     required: true
+  evaluate-pull-request-action:
+    description: If set, evaluate the activity type instead of the current pull request event
+    required: false
+    default: ${{ github.event.action }}
   evaluate-pull-request-base-ref:
     description: If set, evaluate the branch name instead of the base branch of the current pull request
     required: false

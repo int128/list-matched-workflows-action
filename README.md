@@ -59,6 +59,33 @@ on:
       - "src/**"
 ```
 
+If this action runs on an activity type which the target workflows do not handle,
+you can set `evaluate-pull-request-action` to evaluate them as another activity type.
+For example, when a workflow is triggered by `labeled` and the target workflows have no `on.pull_request.types`,
+they are not matched by default. You can evaluate them as `synchronize` as follows:
+
+```yaml
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - labeled
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - id: list-matched-workflows
+        uses: int128/list-matched-workflows-action@v1
+        with:
+          workflows: |
+            .github/workflows/*.yaml
+          evaluate-pull-request-action: synchronize
+```
+
 ## Specification
 
 ### Inputs
@@ -66,6 +93,7 @@ on:
 | Name                             | Default                              | Description                                                                              |
 | -------------------------------- | ------------------------------------ | ---------------------------------------------------------------------------------------- |
 | `workflows`                      | (required)                           | A glob pattern to match workflow files.                                                  |
+| `evaluate-pull-request-action`   | `github.event.action`                | If set, evaluate the activity type instead of the current pull request event.            |
 | `evaluate-pull-request-base-ref` | `github.event.pull_request.base.ref` | If set, evaluate the branch name instead of the base branch of the current pull request. |
 | `evaluate-push-ref`              | `evaluate-push-ref`                  | If set, evaluate the ref instead of the current pushed ref                               |
 | `token`                          | `github.token`                       | GitHub token.                                                                            |
