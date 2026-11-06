@@ -13,6 +13,7 @@ type Inputs = {
 } & EvaluateContext
 
 type EvaluateContext = {
+  evaluatePullRequestAction: string
   evaluatePullRequestBaseRef: string
   evaluatePushRef: string
 }
@@ -42,13 +43,19 @@ const matchWorkflows = async (workflowFiles: WorkflowFile[], evaluateContext: Ev
   const { payload } = context
 
   if ('pull_request' in payload) {
+    assert(evaluateContext.evaluatePullRequestAction, 'evaluate-pull-request-action is required')
     assert(evaluateContext.evaluatePullRequestBaseRef, 'evaluate-pull-request-base-ref is required')
     core.startGroup(`Comparing the base branch and merge commit of the pull request`)
     const changedFiles = await git.compareMergeCommit(context)
     core.endGroup()
     core.info(`Found ${changedFiles.length} changed files`)
     return workflowFiles.filter((f) =>
-      matchPullRequest(f.workflow, payload.action, evaluateContext.evaluatePullRequestBaseRef, changedFiles),
+      matchPullRequest(
+        f.workflow,
+        evaluateContext.evaluatePullRequestAction,
+        evaluateContext.evaluatePullRequestBaseRef,
+        changedFiles,
+      ),
     )
   }
 
