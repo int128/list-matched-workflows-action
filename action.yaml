@@ -27,5 +27,5 @@ outputs:
     description: JSON string of matched workflows
 
 runs:
-  using: 'node24'
-  main: 'dist/index.js'
+  using: "node24"
+  main: "dist/index.js"
